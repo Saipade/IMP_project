@@ -1,0 +1,23 @@
+{
+	"folders": [
+		{
+			"path": "../../../../school/5.sem/IMP/project"
+		},
+		{
+			"name": "imp_project",
+			"path": ".."
+		},
+		{
+			"name": "221116-203754-espidf-blink",
+			"path": "../../221116-203754-espidf-blink"
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"mdns.h": "c",
+			"logger.h": "c",
+			"esp_log.h": "c",
+			"freertos.h": "c"
+		}
+	}
+}
