@@ -22,7 +22,7 @@ enum animations { PUMP_ANIMATION, WORM_ANIMATION, SNAKE_ANIMATION, WAVE_ANIMATIO
 enum speed { SLOW_SPEED, MEDIUM_SPEED, HIGH_SPEED };
 
 /* mdns macros */
-#define MDNS_DEVICE_NAME "esp32"
+#define MDNS_DEVICE_NAME "esp32-led-controller"
 
 
 char* html_start = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n" \
@@ -30,12 +30,12 @@ char* html_start = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n" \
 "<html>\n" \
 "    <head>\n" \
 "        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">\n" \
+"        <link rel=\"icon\" href=\"data:;base64,=\">" \
 "        <title>ESP32 LED control</title>\n" \
 "        <style>\n" \
 "            html { \n" \
 "                font-family: Helvetica; \n" \
-"                margin: 0px auto; \n" \
-"                text-align: center;\n" \
+"                margin: 0px 0px; \n" \
 "                width: 100vw;\n" \
 "                height: 100vh;\n" \
 "                overflow: auto;" \
@@ -52,13 +52,9 @@ char* html_start = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n" \
 "            p {\n" \
 "                font-size: 14px;\n" \
 "            }\n" \
-"            .content {\n" \
-"                margin: auto;\n" \
-"            }\n" \
 "            .buttons {\n" \
 "                display: flex; \n" \
 "                width: 70vh; \n" \
-"                margin: auto;\n" \
 "            }\n" \
 "            .button {\n" \
 "                display: block;\n" \
@@ -68,7 +64,7 @@ char* html_start = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n" \
 "                padding: 10px 20px;\n" \
 "                text-decoration: none;\n" \
 "                font-size: 20px;\n" \
-"                margin: 0px auto 35px;\n" \
+"                margin: 0px 20px 35px;\n" \
 "                cursor: pointer;\n" \
 "                border-radius: 4px;\n" \
 "            }\n" \

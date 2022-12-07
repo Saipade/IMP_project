@@ -1,6 +1,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <freertos/queue.h>
+#include <freertos/semphr.h>
 
 #include <ESPmDNS.h>
 #include <WiFi.h>
@@ -12,9 +13,15 @@
 #include "message.h"
 
 /* handles */
+/* timer handle */
 esp_timer_handle_t tick_timer_handle = NULL;
+/* task handles */
 TaskHandle_t client_task_handle = NULL;
 TaskHandle_t change_animation_state_task_handle = NULL;
+/* semaphore */
+SemaphoreHandle_t semaphore_handle = NULL;
+
+/* queue */
 QueueHandle_t animation_change_queue = NULL;
 
 /* current state */
@@ -23,11 +30,8 @@ int animation_type = PUMP_ANIMATION;
 int animation_speed = MEDIUM_SPEED;
 
 /* server credentials */
-const char* ssid = "UPC9344314";
-const char* pwd = "Cz5azrfdzM7j";
-
-//const char* ssid = "AndroidAP_2942";
-//const char* pwd = "kekwkekw";
+const char* ssid = "AndroidAP_2942";
+const char* pwd = "kekwkekw";
 
 WiFiServer server(HTTP_PORT);
 WiFiClient client;
@@ -65,8 +69,6 @@ void setup_server(void) {
     printf("mDNS started!\n");
     /* Add tcp service */
     MDNS.addService("http", "tcp", HTTP_PORT);
-
-    
 
     /* Start server */
     server.begin();
@@ -168,7 +170,7 @@ void animation_pump(void) {
     gpio_set_level(LEFT_LED, tick>0);
     gpio_set_level(MIDDLE_LED, tick>1);
     gpio_set_level(RIGHT_LED, tick>2);
-    if (tick==3) { switch_rgb_led_color(); }
+    if (tick==4) { switch_rgb_led_color(); }
     keep_rgb_led_color();
     tick++;
     tick = tick % animation_length;
@@ -259,10 +261,8 @@ void change_animation_state_task(void* args) {
                 printf("Message: %s\n", string_message.c_str());
                 String response;
 
-                if (string_message == "/") { goto construct_page; }
-                else if (string_message == "/favicon.ico") {
-                    response = "HTTP/1.1 204 No Content\r\n\r\n";
-                    goto print_page;
+                if (string_message == "/") { 
+                    goto construct_page;
                 }
                 /* speed change requests */
                 else if (string_message == "/speed_slow") { 
@@ -337,7 +337,8 @@ construct_page:
                 response += html_end;
 print_page:
                 client.write(response.c_str());
-                delay(1);
+                /* release a semaphore */
+                xSemaphoreGive(semaphore_handle);
             }
         }
     }
@@ -350,7 +351,7 @@ print_page:
  * 
  * @param args 
  */
-void task_client(void* args) {
+void client_task(void* args) {
     
     while (true) {
 
@@ -369,9 +370,6 @@ void task_client(void* args) {
         const char* _request = request.c_str();
         printf("Request: %s\n", _request);
 
-        /* create queue */
-        animation_change_queue = xQueueCreate(1, sizeof(change_animation_message_t));
-
         /* copy request to message structure */
         change_animation_message_t message;
         memset(&(message.res), 0, 20);
@@ -379,12 +377,12 @@ void task_client(void* args) {
         
         /* send queue */
         while (xQueueSend(animation_change_queue, (void *)&message, (TickType_t)100) != pdTRUE) {;}
-        
-        /* give the web browser time to receive the data */
-        delay(1);
-        
-        /* close the connection */
-        client.stop();
+
+        /* wait for the queue processing to end */
+        if (xSemaphoreTake(semaphore_handle, portMAX_DELAY)) {
+            /* close the connection */
+            client.stop();
+        }
 
     }
 
@@ -418,10 +416,14 @@ extern "C" void app_main(void) {
     /* initialise timer */
     set_and_start_tick_timer();
 
+    /* create queue */
+    animation_change_queue = xQueueCreate(1, sizeof(change_animation_message_t));
+
+    /* create semaphore */
+    semaphore_handle = xSemaphoreCreateBinary();
+    
     /* create tasks */
-    xTaskCreate(task_client, "client", STACK_SIZE, NULL, 1, &client_task_handle);
+    xTaskCreate(client_task, "client", STACK_SIZE, NULL, 0, &client_task_handle);
     xTaskCreate(change_animation_state_task, "change the animation state", STACK_SIZE, NULL, 0, &change_animation_state_task_handle);
-    //xTaskCreatePinnedToCore(task_client, "client", STACK_SIZE, NULL, 0, &client_task_handle, 0);
-    //xTaskCreatePinnedToCore(change_animation_state_task, "change the animation state", STACK_SIZE, NULL, 1, &change_animation_state_task_handle, 1);
 
 }
